@@ -1,0 +1,365 @@
+openapi: 3.0.3
+info:
+  title: Restaurant Management API - 2025 [J]
+  description: Restaurant Management API - 2025 [J]
+  version: 1.0.0
+servers:
+  - url: 'https://localhost:8080'
+paths:
+  /ingredients:
+    get:
+      summary: Get list of ingredients
+      description: List of ingredients
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        200:
+          description: List of ingredients
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Ingredient'
+  /ingredients/{id}/prices:
+    put:
+      summary: Add new prices to a specifc ingredient
+      parameters:
+        - $ref: '#/components/parameters/IngredientIdentifier'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/Price'
+        required: true
+      responses:
+        200:
+          description: The specific ingredient with updated price history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ingredient'
+  /ingredients/{id}/stockMovements:
+    put:
+      summary: Add new stock movements to a specifc ingredient
+      parameters:
+        - $ref: '#/components/parameters/IngredientIdentifier'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/StockMovement'
+        required: true
+      responses:
+        200:
+          description: The specific ingredient with updated stockMovement history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ingredient'
+  /dishes:
+    get:
+      summary: Get dishes
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        200:
+          description: List of dishes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Dish'
+  /dishes/{id}/ingredients:
+    put:
+      summary: Compose a specific dish with some ingredients
+      description: |
+        In case the ingredients already exist, so only set required quantity for this specific dish.
+        If ingredients do not exist (by its unique name), create ingredient and set required quantity at the same time for this specific dish.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/CreateDishIngredient'
+      responses:
+        200:
+          description: Dish with new ingredients
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dish'
+  /orders/{reference}:
+    get:
+      summary: Get specific order by specific reference
+      description: In case any order with provided ID found, throws 404 response.
+      parameters:
+        - $ref: '#/components/parameters/OrderReference'
+      responses:
+        200:
+          description: Order retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+    post:
+      summary: Create new order with specific reference
+      description: In case reference is already use, throws 400 response.
+      parameters:
+        - $ref: '#/components/parameters/OrderReference'
+      responses:
+        200:
+          description: Created Order
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+  /orders/{reference}/dishes:
+    put:
+      summary: Set dishes inside specific existing order
+      parameters:
+        - $ref: '#/components/parameters/OrderReference'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOrder'
+      responses:
+        200:
+          description: Order with dishes set with ordered quantity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+  /orders/{reference}/dishes/{dishId}:
+    put:
+      summary: Update dish order status
+      parameters:
+        - $ref: '#/components/parameters/OrderReference'
+        - in: path
+          name: dishId
+          schema:
+            type: integer
+            description: Dish identifier
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDishOrderStatus'
+      responses:
+        200:
+          description: Order with dishes with updated status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+  /sales:
+    get:
+      summary: Get dishes sold
+      description: |
+        This endpoint is optional, but makes easier to retrieve data from central.
+        A sale must always be attached to an order with status DELIVERED.
+      responses:
+        200:
+          description: List of dishes sold
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DishSold'
+components:
+  parameters:
+    OrderReference:
+      in: path
+      name: reference
+      schema:
+        type: string
+      required: true
+    IngredientIdentifier:
+      in: path
+      name: id
+      schema:
+        type: integer
+      required: true
+    Page:
+      in: query
+      name: page
+      schema:
+        type: integer
+      required: false
+    PageSize:
+      in: query
+      name: pageSize
+      schema:
+        type: integer
+      required: false
+  schemas:
+    OrderStatus:
+      type: string
+      enum:
+        - CREATED
+        - CONFIRMED
+        - IN_PROGRESS
+        - FINISHED
+        - DELIVERED
+    UpdateDishOrderStatus:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/OrderStatus'
+    UpdateOrder:
+      type: object
+      properties:
+        orderStatus:
+          $ref: '#/components/schemas/OrderStatus'
+        dishes:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreateDishOrder'
+    CreateDishOrder:
+      type: object
+      properties:
+        dishIdentifier:
+          type: integer
+        quantityOrdered:
+          type: integer
+    Order:
+      type: object
+      properties:
+        id:
+          type: integer
+        totalAmount:
+          type: number
+        actualStatus:
+          $ref: '#/components/schemas/OrderStatus'
+        dishes:
+          type: array
+          items:
+            $ref: '#/components/schemas/DishOrder'
+    CreateDishIngredient:
+      allOf:
+        - $ref: '#/components/schemas/IngredientBasicProperty'
+      type: object
+      properties:
+        requiredQuantity:
+          type: number
+    DishOrder:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Dish identifier (not dishOrder identifier)
+        name:
+          type: string
+        quantityOrdered:
+          type: integer
+        actualOrderStatus:
+          $ref: '#/components/schemas/OrderStatus'
+    DishSold:
+      type: object
+      properties:
+        dishIdentifier:
+          type: integer
+        dishName:
+          type: string
+        quantitySold:
+          type: integer
+    Dish:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        availableQuantity:
+          type: integer
+        actualPrice:
+          type: number
+        ingredients:
+          type: array
+          items:
+            $ref: '#/components/schemas/DishIngredient'
+    DishIngredient:
+      type: object
+      properties:
+        requiredQuantity:
+          type: number
+        unit:
+          $ref: '#/components/schemas/Unit'
+        ingredient:
+          $ref: '#/components/schemas/IngredientBasicProperty'
+    IngredientBasicProperty:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+    Ingredient:
+      type: object
+      properties:
+        prices:
+          type: array
+          items:
+            $ref: '#/components/schemas/Price'
+        stockMovements:
+          type: array
+          items:
+            $ref: '#/components/schemas/StockMovement'
+        availableQuantity:
+          type: number
+        actualPrice:
+          type: number
+      allOf:
+        - $ref: '#/components/schemas/IngredientBasicProperty'
+    Price:
+      type: object
+      properties:
+        id:
+          type: integer
+        price:
+          type: number
+        dateValue:
+          type: string
+          format: date
+    StockMovement:
+      type: object
+      properties:
+        id:
+          type: integer
+        quantity:
+          type: number
+        unit:
+          $ref: '#/components/schemas/Unit'
+        type:
+          $ref: '#/components/schemas/StockMovementType'
+        creationDatetime:
+          type: string
+          format: date-time
+    StockMovementType:
+      type: string
+      enum:
+        - IN
+        - OUT
+    Unit:
+      type: string
+      enum:
+        - G
+        - U
+        - L
