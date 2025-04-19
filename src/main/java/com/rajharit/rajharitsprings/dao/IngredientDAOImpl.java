@@ -255,8 +255,8 @@ public class IngredientDAOImpl implements IngredientDAO {
     @Override
     public Ingredient findByIdAndPriceAndDateAndStockDate(int ingredientId, LocalDateTime priceDate, LocalDateTime stockDate) {
         String ingredientQuery = "SELECT * FROM Ingredient WHERE ingredient_id = ?";
-        String priceQuery = "SELECT price FROM Price_History WHERE ingredient_id = ? AND date <= ? ORDER BY date DESC LIMIT 1";
-        String stockQuery = "SELECT * FROM Stock_Movement WHERE ingredient_id = ? AND movement_date <= ?";
+        String priceQuery = "SELECT price_history_id, price, date FROM Price_History WHERE ingredient_id = ? AND date <= ? ORDER BY date DESC LIMIT 1";
+        String stockQuery = "SELECT movement_id, ingredient_id, movement_type, quantity, unit, movement_date FROM Stock_Movement WHERE ingredient_id = ? AND movement_date <= ?";
 
         try (Connection connection = dataBaseSource.getConnection();
              PreparedStatement ingredientStatement = connection.prepareStatement(ingredientQuery);

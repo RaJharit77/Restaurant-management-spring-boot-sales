@@ -38,8 +38,23 @@ public class IngredientService {
         if (maxPrice != null) {
             ingredients = ingredients.stream()
                     .filter(ingredient -> ingredient.getActualPrice() <= maxPrice)
-                    .collect(Collectors.toList());
+                    .toList();
         }
+
+        ingredients.forEach(ingredient -> {
+            List<StockMovement> movements = ingredientRepository.getStockMovementsByIngredientId(ingredient.getId());
+            ingredient.setStockMovements(movements);
+
+            double availableQuantity = movements.stream()
+                    .mapToDouble(m ->
+                            m.getMovementType() == MovementType.IN ?
+                                    m.getQuantity() :
+                                    -m.getQuantity()
+                    )
+                    .sum();
+
+            ingredient.setAvailableQuantity(availableQuantity);
+        });
 
         return ingredients.stream()
                 .map(ingredientMapper::toDto)
@@ -52,8 +67,18 @@ public class IngredientService {
             throw new ResourceNotFoundException("Ingredient not found with id: " + id);
         }
 
-        ingredient.setPriceHistory(ingredientRepository.getPriceHistoryForIngredient(id));
-        ingredient.setStockMovements(ingredientRepository.getStockMovementsByIngredientId(id));
+        List<StockMovement> movements = ingredientRepository.getStockMovementsByIngredientId(id);
+        ingredient.setStockMovements(movements);
+
+        double availableQuantity = movements.stream()
+                .mapToDouble(m ->
+                        m.getMovementType() == MovementType.IN ?
+                                m.getQuantity() :
+                                -m.getQuantity()
+                )
+                .sum();
+
+        ingredient.setAvailableQuantity(availableQuantity);
 
         return ingredientMapper.toDto(ingredient);
     }
