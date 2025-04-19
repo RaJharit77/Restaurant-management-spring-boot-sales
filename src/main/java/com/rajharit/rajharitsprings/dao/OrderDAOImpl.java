@@ -61,6 +61,8 @@ public class OrderDAOImpl implements OrderDAO {
                 dish.setId(rs.getInt("dish_id"));
                 dishOrder.setDish(dish);
 
+                dishOrder.setStatusHistory(loadDishOrderStatusHistory(connection, dishOrder.getDishOrderId()));
+
                 dishOrders.add(dishOrder);
             }
         }
@@ -186,22 +188,28 @@ public class OrderDAOImpl implements OrderDAO {
         }
     }
 
-    private void loadDishOrderStatusHistory(Connection connection, DishOrder dishOrder) throws SQLException {
-        String query = "SELECT * FROM Dish_Order_Status WHERE dish_order_id = ? ORDER BY changed_at";
+    private List<DishOrderStatus> loadDishOrderStatusHistory(Connection connection, int dishOrderId) throws SQLException {
+        String query = "SELECT * FROM dish_order_status " +
+                "WHERE dish_order_id = ? " +
+                "ORDER BY changed_at";
+
+        List<DishOrderStatus> statusHistory = new ArrayList<>();
+
         try (PreparedStatement statement = connection.prepareStatement(query)) {
-            statement.setInt(1, dishOrder.getDishOrderId());
+            statement.setInt(1, dishOrderId);
             ResultSet rs = statement.executeQuery();
 
-            List<DishOrderStatus> statusHistory = new ArrayList<>();
             while (rs.next()) {
-                statusHistory.add(new DishOrderStatus(
-                        rs.getInt("dish_order_status_id"),
-                        StatusType.valueOf(rs.getString("status")),
-                        rs.getTimestamp("changed_at").toLocalDateTime()
-                ));
+                DishOrderStatus status = new DishOrderStatus();
+                status.setDishOrderStatusId(rs.getInt("dish_order_status_id"));
+                status.setStatus(StatusType.valueOf(rs.getString("status")));
+                status.setChangedAt(rs.getTimestamp("changed_at").toLocalDateTime());
+
+                statusHistory.add(status);
             }
-            dishOrder.setStatusHistory(statusHistory);
         }
+
+        return statusHistory;
     }
 
     @Override

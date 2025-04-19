@@ -2,7 +2,9 @@ package com.rajharit.rajharitsprings.controllers;
 
 import com.rajharit.rajharitsprings.dtos.DishDto;
 import com.rajharit.rajharitsprings.dtos.DishIngredientDto;
+import com.rajharit.rajharitsprings.dtos.ProcessingTimeDto;
 import com.rajharit.rajharitsprings.services.DishService;
+import com.rajharit.rajharitsprings.services.OrderService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,9 +15,11 @@ import java.util.stream.Collectors;
 @RequestMapping("/dishes")
 public class DishController {
     private final DishService dishService;
+    private final OrderService orderService;
 
-    public DishController(DishService dishService) {
+    public DishController(DishService dishService, OrderService orderService) {
         this.dishService = dishService;
+        this.orderService = orderService;
     }
 
     @GetMapping
@@ -30,6 +34,12 @@ public class DishController {
             @RequestBody List<DishIngredientDto> ingredients) {
         DishDto updatedDish = dishService.updateDishIngredients(id, ingredients);
         return ResponseEntity.ok(updatedDish);
+    }
+
+    @GetMapping("/{id}/processingTimes")
+    public ResponseEntity<List<ProcessingTimeDto>> getDishProcessingTimes(@PathVariable int id) {
+        List<ProcessingTimeDto> processingTimes = orderService.getProcessingTimesForDish(id);
+        return ResponseEntity.ok(processingTimes);
     }
 
     @PostMapping

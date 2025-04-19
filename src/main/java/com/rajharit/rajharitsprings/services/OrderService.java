@@ -11,7 +11,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -290,6 +292,46 @@ public class OrderService {
             case DELIVERED:
                 throw new BusinessException("Cannot change status from DELIVERED");
         }
+    }
+
+    public List<ProcessingTimeDto> getProcessingTimesForDish(int dishId) {
+        List<Order> allOrders = orderDAO.getAll();
+        List<ProcessingTimeDto> processingTimes = new ArrayList<>();
+
+        for (Order order : allOrders) {
+            if (order.getDishOrders() == null) continue;
+
+            for (DishOrder dishOrder : order.getDishOrders()) {
+                if (dishOrder.getDish().getId() == dishId &&
+                        dishOrder.getStatusHistory() != null) {
+
+                    LocalDateTime inProgressTime = null;
+                    LocalDateTime deliveredTime = null;
+
+                    for (DishOrderStatus status : dishOrder.getStatusHistory()) {
+                        if (status.getStatus() == StatusType.IN_PROGRESS) {
+                            inProgressTime = status.getChangedAt();
+                        } else if (status.getStatus() == StatusType.DELIVERED) {
+                            deliveredTime = status.getChangedAt();
+                        }
+                    }
+
+                    if (inProgressTime != null && deliveredTime != null) {
+                        long durationSeconds = Duration.between(inProgressTime, deliveredTime).getSeconds();
+
+                        ProcessingTimeDto dto = new ProcessingTimeDto();
+                        dto.setDishId(dishId);
+                        dto.setDishName(dishOrder.getDish().getName());
+                        dto.setPreparationDuration(durationSeconds);
+                        dto.setSalesPoint("PDV-" + order.getOrderId() % 2 + 1);
+
+                        processingTimes.add(dto);
+                    }
+                }
+            }
+        }
+
+        return processingTimes;
     }
 
     public void deleteOrderId(int id) {
